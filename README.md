@@ -43,7 +43,8 @@ applications.
         │   │       ├── exception
         │   │       ├── security
         │   │       ├── config
-        │   │       └── util
+        │   │       ├── util
+        │   │       └── enums
         │   │
         │   └── resources
         │       ├── application.yml
@@ -122,6 +123,10 @@ Application runs at:
 ### `util`
 - Helper and utility classes
 - Common reusable logic
+
+### `enums`
+- contains project enums
+- specify them in models and entity
 
 ---
 
