@@ -132,16 +132,15 @@ Application runs at:
 
 ## ⚙️ Configuration (`application.yml`)
 
-The `application.yml` file is used to configure:
+The `application.properties` file is used to configure:
 - Server port
 - Database connection
 - JPA/Hibernate settings
 - Logging levels
 
 Example:
-```yaml
-server:
-  port: 8080
+```properties
+server.port= 8080
 
 spring:
   datasource:

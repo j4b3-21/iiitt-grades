@@ -1,0 +1,10 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1
+      author: bhuvan
+      changes:
+        - sqlFile:
+            path: db/changelog/sql/v1-initial-schema.sql
+            relativeToChangelogFile: false
+            splitStatements: false
+            stripComments: false
