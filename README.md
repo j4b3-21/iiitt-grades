@@ -47,7 +47,7 @@ applications.
         │   │       └── enums
         │   │
         │   └── resources
-        │       ├── application.yml
+        │       ├── application.properties
         │       ├── static
         │       ├── templates
         │       └── db
@@ -125,12 +125,11 @@ Application runs at:
 - Common reusable logic
 
 ### `enums`
-- contains project enums
-- specify them in models and entity
+- All enums are present here
 
 ---
 
-## ⚙️ Configuration (`application.yml`)
+## ⚙️ Configuration (`application.properties`)
 
 The `application.properties` file is used to configure:
 - Server port
@@ -138,17 +137,18 @@ The `application.properties` file is used to configure:
 - JPA/Hibernate settings
 - Logging levels
 
-Example:
+
 ```properties
-server.port= 8080
+server.port=8080
 
-spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/mydatabase
-    username: myuser
-    password: secret
+spring.datasource.url=jdbc:postgresql://localhost:5432/iiitt_grades
+spring.datasource.username=postgres
+spring.datasource.password=postres
 
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
+spring.flyway.enabled=true
+spring.flyway.locations=classpath:db/migration
+
+spring.jpa.hibernate.ddl-auto=validate
+spring.jpa.open-in-view=false
+spring.jpa.show-sql=false
+```
