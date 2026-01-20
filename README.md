@@ -30,7 +30,7 @@ applications.
     └── src
         ├── main
         │   ├── java
-        │   │   └── com.example.grading
+        │   │   └── com.example.grading_engineff
         │   │       ├── GradingApplication.java
         │   │       ├── controller
         │   │       ├── service
