@@ -10,6 +10,8 @@ pipeline {
         SPRING_PROFILES_ACTIVE = 'test'
     }
 
+
+
     stages {
         stage('Build & Test') {
             steps {
