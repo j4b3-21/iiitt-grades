@@ -6,13 +6,21 @@ pipeline {
         }
     }
 
+    options {
+        skipDefaultCheckout(true)
+    }
+
     environment {
         SPRING_PROFILES_ACTIVE = 'test'
     }
 
-
-
     stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
         stage('Build & Test') {
             steps {
                 sh 'mvn clean verify'
