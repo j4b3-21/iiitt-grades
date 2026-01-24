@@ -152,3 +152,4 @@ spring.jpa.hibernate.ddl-auto=validate
 spring.jpa.open-in-view=false
 spring.jpa.show-sql=false
 ```# CI trigger
+# CI trigger
