@@ -44,6 +44,14 @@ public class User {
     public User() {
     }
 
+    public Boolean getActive() {
+        return isActive;
+    }
+
+    public void setActive(Boolean active) {
+        isActive = active;
+    }
+
     public User(
             UUID id,
             String fullName,
