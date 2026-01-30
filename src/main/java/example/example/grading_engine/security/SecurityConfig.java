@@ -1,46 +1,64 @@
 package example.example.grading_engine.security;
 
-import example.example.grading_engine.model.entity.User;
 import example.example.grading_engine.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseCookie;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.access.AccessDeniedHandlerImpl;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.time.Duration;
+import java.util.List;
 
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    @Value("http://localhost:8080")
+    private String frontendUrl;
+
     @Bean
     AccessDeniedHandler accessDeniedHandler() {
         AccessDeniedHandlerImpl handler = new AccessDeniedHandlerImpl();
-        handler.setErrorPage("/accessDenied"); // 🔥 redirect target
+        handler.setErrorPage("/accessDenied");
         return handler;
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of(frontendUrl));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+
+        return source;
     }
 
     private final JwtAuthenticationFilter jwtFilter;
     private final CustomOAuth2UserService oauthUserService;
-    private final JwtUtil jwtUtil;
+    private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 
     public SecurityConfig(
             JwtAuthenticationFilter jwtFilter,
             CustomOAuth2UserService oauthUserService,
-            JwtUtil jwtUtil
+            JwtUtil jwtUtil, OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler
     ) {
         this.jwtFilter = jwtFilter;
         this.oauthUserService = oauthUserService;
-        this.jwtUtil = jwtUtil;
+        this.oAuth2LoginSuccessHandler = oAuth2LoginSuccessHandler;
     }
 
     @Bean
@@ -50,16 +68,17 @@ public class SecurityConfig {
     ) throws Exception {
 
         http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(
                         s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/accessDenied").permitAll()
-                        .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/faculty/**").hasRole("FACULTY")
-                        .requestMatchers("/hod/**").hasRole("HOD")
-                        .requestMatchers("/student/**").hasRole("STUDENT")
+                        .requestMatchers("/api/accessDenied").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/faculty/**").hasRole("FACULTY")
+                        .requestMatchers("/api/hod/**").hasRole("HOD")
+                        .requestMatchers("/api/student/**").hasRole("STUDENT")
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex
@@ -67,39 +86,14 @@ public class SecurityConfig {
                 )
                 .oauth2Login(oauth -> oauth
                         .userInfoEndpoint(u -> u.userService(oauthUserService))
-                        .successHandler((req, res, authResult) -> {
-
-                            OAuth2User oauthUser =
-                                    (OAuth2User) authResult.getPrincipal();
-
-                            String email = oauthUser.getAttribute("email");
-
-                            User user = userRepository
-                                    .findByEmail(email)
-                                    .orElseThrow();
-
-                            String token = jwtUtil.generateToken(user);
-
-                            ResponseCookie cookie =
-                                    ResponseCookie.from("ACCESS_TOKEN", token)
-                                            .httpOnly(true)
-                                            .secure(false)
-                                            .path("/")
-                                            .maxAge(Duration.ofDays(1))
-                                            .sameSite("Lax")
-                                            .build();
-
-                            res.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-
-                            // ✅ After login, redirect back to a safe endpoint
-                            res.sendRedirect("/auth/me");
-                        })
+                        .successHandler(oAuth2LoginSuccessHandler)
+                )
+                .addFilterBefore(
+                        jwtFilter,
+                        UsernamePasswordAuthenticationFilter.class
                 );
 
-        http.addFilterBefore(
-                jwtFilter,
-                UsernamePasswordAuthenticationFilter.class
-        );
+
 
         return http.build();
     }
