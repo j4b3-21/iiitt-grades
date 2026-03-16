@@ -1,5 +1,6 @@
 package example.example.grading_engine.policy.impl;
 
+import com.nimbusds.jose.util.Pair;
 import example.example.grading_engine.dto.SubjectMarks_GradingResponse;
 import example.example.grading_engine.enums.grading.GradeLetter;
 import example.example.grading_engine.policy.GradingPolicy;
@@ -33,7 +34,7 @@ public class PolicyV1_StdDevRelative implements GradingPolicy {
         BigDecimal passCutoff = min35.min(meanHalf).min(maxBy3);
 
         // Pre-compute grade boundaries and map to store grades
-        Map<GradeLetter, BigDecimal> gradeBoundaries = new LinkedHashMap<>();
+        Map<GradeLetter, Pair<BigDecimal, BigDecimal>> gradeBoundaries = new LinkedHashMap<>();
 
         BigDecimal sCutoff = mean.add(std.multiply(BigDecimal.valueOf(1.5)));
         BigDecimal aCutoff = mean.add(std.multiply(BigDecimal.valueOf(0.5)));
@@ -42,13 +43,13 @@ public class PolicyV1_StdDevRelative implements GradingPolicy {
         BigDecimal dCutoff = mean.subtract(std.multiply(BigDecimal.valueOf(2.0)));
         BigDecimal eCutoff = mean.subtract(std.multiply(BigDecimal.valueOf(2.5)));;
 
-        gradeBoundaries.put(GradeLetter.S, sCutoff);
-        gradeBoundaries.put(GradeLetter.A, aCutoff);
-        gradeBoundaries.put(GradeLetter.B, bCutoff);
-        gradeBoundaries.put(GradeLetter.C, cCutoff);
-        gradeBoundaries.put(GradeLetter.D, dCutoff);
-        gradeBoundaries.put(GradeLetter.E, eCutoff);
-        gradeBoundaries.put(GradeLetter.F, passCutoff);
+        gradeBoundaries.put(GradeLetter.S, Pair.of(sCutoff, BigDecimal.valueOf(100)));
+        gradeBoundaries.put(GradeLetter.A, Pair.of(aCutoff, sCutoff));
+        gradeBoundaries.put(GradeLetter.B, Pair.of(bCutoff, aCutoff));
+        gradeBoundaries.put(GradeLetter.C, Pair.of(cCutoff, bCutoff));
+        gradeBoundaries.put(GradeLetter.D, Pair.of(dCutoff, cCutoff));
+        gradeBoundaries.put(GradeLetter.E, Pair.of(eCutoff, dCutoff));
+        gradeBoundaries.put(GradeLetter.F, Pair.of(BigDecimal.ZERO, passCutoff));
 
         Map<java.util.UUID, GradeLetter> studentGrades = new java.util.HashMap<>();
 
@@ -79,6 +80,8 @@ public class PolicyV1_StdDevRelative implements GradingPolicy {
         }
 
         return new SubjectMarks_GradingResponse(
+                ctx.getClassCode(),
+                ctx.getSubjectCode(),
                 ctx.getStudents(),
                 mean,
                 std,

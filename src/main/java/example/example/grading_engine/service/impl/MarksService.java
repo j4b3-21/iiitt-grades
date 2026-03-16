@@ -20,13 +20,20 @@ public class MarksService {
 
     private final MarksRepository marksRepository;
     private final PolicyRegistry policyRegistry;
+    private final GradingPersistenceServiceImpl gradingPersistenceService;
 
-    public MarksService(MarksRepository marksRepository, PolicyRegistry policyRegistry) {
+    public MarksService(
+            MarksRepository marksRepository,
+            PolicyRegistry policyRegistry,
+            GradingPersistenceServiceImpl gradingPersistenceService
+    ) {
         this.marksRepository = marksRepository;
         this.policyRegistry = policyRegistry;
+        this.gradingPersistenceService = gradingPersistenceService;
     }
 
     public SubjectMarks_GradingResponse getGrading(@Valid SubjectMarks_GradingRequest request) {
+
 
         List<MarkComponentType> types = request.markTypes();
 
@@ -40,49 +47,16 @@ public class MarksService {
                 types
         );
 
-//        Mock data (uncomment to test without DB)
-
-//        List<Mark> marks = new ArrayList<>();
-//        for (int i = 1; i <= 5; i++) {
-//            Mark internal = new Mark();
-//            internal.setId(UUID.randomUUID());
-//            internal.setMarksType(MarkComponentType.INTERNAL);
-//            internal.setMarks(BigDecimal.valueOf(20 + i));
-//
-//            Mark endsem = new Mark();
-//            endsem.setId(UUID.randomUUID());
-//            endsem.setMarksType(MarkComponentType.CT1);
-//            endsem.setMarks(BigDecimal.valueOf(50 + i));
-//
-//            // enrollment + nested objects
-//            Student student = new example.example.grading_engine.model.entity.Student();
-//            student.setId(UUID.randomUUID());
-//            student.setRollNumber("CS22B10" + i);
-//
-//            StudentEnrollment enrollment = new StudentEnrollment();
-//            enrollment.setStudent(student);
-//
-//            AcademicSession session = new AcademicSession();
-//            session.setGradingPolicyVer("V1_STDDEV");
-//
-//            enrollment.setSession(session);
-//
-//            internal.setEnrollment(enrollment);
-//            endsem.setEnrollment(enrollment);
-//
-//            marks.add(internal);
-//            marks.add(endsem);
-//        }
-
         Map<UUID, StudentBucket> byStudent = new LinkedHashMap<>();
         for (Mark m : marks) {
             if (m == null || m.getEnrollment() == null || m.getEnrollment().getStudent() == null) continue;
             UUID studentId = m.getEnrollment().getStudent().getId();
+            UUID enrollmentId = m.getEnrollment().getId();
             String roll = m.getEnrollment().getStudent().getRollNumber();
             String policy = m.getEnrollment().getSession().getGradingPolicyVer();
-            // policy version captured once (same for all students in this request)
 
-            StudentBucket bucket = byStudent.computeIfAbsent(studentId, id -> new StudentBucket(id, roll));
+
+            StudentBucket bucket = byStudent.computeIfAbsent(studentId, id -> new StudentBucket(id,enrollmentId, roll,policy));
             bucket.marks.put(m.getMarksType(), m.getMarks());
         }
 
@@ -98,6 +72,7 @@ public class MarksService {
 
             entries.add(new SubjectMarks_GradingResponse.StudentInitialGrade(
                     sb.studentId,
+                    sb.enrollmentId,
                     sb.rollNumber,
                     Map.copyOf(complete),
                     total,
@@ -129,11 +104,10 @@ public class MarksService {
         );
 
         SubjectMarks_GradingResponse response = policy.apply(context);
-
-
-
-
-
+        gradingPersistenceService.saveDraftGradingSnapshot(
+                response,
+                policyVersion
+        );
         return response;
 
     }
@@ -141,12 +115,16 @@ public class MarksService {
     // simple bucket class used while building the response
     private static class StudentBucket {
         final UUID studentId;
+        final UUID enrollmentId;
         final String rollNumber;
         final EnumMap<MarkComponentType, BigDecimal> marks = new EnumMap<>(MarkComponentType.class);
+        final String policy;
 
-        StudentBucket(UUID studentId, String rollNumber) {
+        StudentBucket(UUID studentId, UUID enrollmentId, String rollNumber, String policy) {
             this.studentId = studentId;
+            this.enrollmentId = enrollmentId;
             this.rollNumber = rollNumber;
+            this.policy = policy;
         }
     }
 

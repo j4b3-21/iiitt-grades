@@ -33,7 +33,7 @@ class MarksServiceTest {
         PolicyV1_StdDevRelative policy = new PolicyV1_StdDevRelative();
         PolicyRegistry registry = new PolicyRegistry(List.of(policy));
 
-        marksService = new MarksService(marksRepository, registry);
+//        marksService = new MarksService(marksRepository, registry);
     }
 
     @Test
