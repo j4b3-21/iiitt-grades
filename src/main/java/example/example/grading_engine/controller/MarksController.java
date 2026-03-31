@@ -1,7 +1,7 @@
 package example.example.grading_engine.controller;
 
+import example.example.grading_engine.dto.GradingResult;
 import example.example.grading_engine.dto.SubjectMarks_GradingRequest;
-import example.example.grading_engine.dto.SubjectMarks_GradingResponse;
 import example.example.grading_engine.service.impl.MarksService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -24,14 +24,12 @@ public class MarksController {
 
 
     @PostMapping("/getGrading")
-    public ResponseEntity<SubjectMarks_GradingResponse> getGrading(
+    public ResponseEntity<GradingResult> getGrading(
             @Valid @RequestBody SubjectMarks_GradingRequest request
     ) {
 
-        SubjectMarks_GradingResponse response = marksService.getGrading(request);
+        GradingResult response = marksService.getGrading(request);
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
-
-
 }

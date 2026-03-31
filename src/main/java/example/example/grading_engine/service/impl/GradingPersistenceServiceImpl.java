@@ -12,6 +12,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -37,7 +38,7 @@ public class GradingPersistenceServiceImpl
     }
 
     @Override
-    public void saveDraftGradingSnapshot(
+    public GradeSubmission saveDraftGradingSnapshot(
             SubjectMarks_GradingResponse response,
             String policyVersion
     ) {
@@ -45,6 +46,27 @@ public class GradingPersistenceServiceImpl
         GradeStatistics statistics = createStatistics(response);
         createBoundaries(statistics, response.gradeBoundaries());
         createFinalGrades(submission, statistics, response.students());
+        return submission;
+    }
+
+    private GradeSubmission createSubmission(String policyVersion) {
+        GradeSubmission submission = new GradeSubmission();
+        submission.setStatus(SubmissionStatus.DRAFT);
+        submission.setPolicyVersion(policyVersion);
+        submission.setSubmittedAt(LocalDateTime.now());
+        submission.setLockedAt(null);
+
+        return submissionRepo.save(submission);
+    }
+
+    private GradeStatistics createStatistics(
+            SubjectMarks_GradingResponse response
+    ) {
+        GradeStatistics stats = new GradeStatistics();
+        stats.setMean(response.meanTotal());
+        stats.setStdDeviation(response.standardDeviationTotal());
+
+        return statisticsRepo.save(stats);
     }
 
     private void createFinalGrades(
@@ -70,27 +92,6 @@ public class GradingPersistenceServiceImpl
             createFinalGradeMarks(finalGrade, student.getMarksByType());
         }
     }
-
-    private GradeSubmission createSubmission(String policyVersion) {
-        GradeSubmission submission = new GradeSubmission();
-        submission.setStatus(SubmissionStatus.DRAFT);
-        submission.setPolicyVersion(policyVersion);
-        submission.setSubmittedAt(null);
-        submission.setLockedAt(null);
-
-        return submissionRepo.save(submission);
-    }
-
-    private GradeStatistics createStatistics(
-            SubjectMarks_GradingResponse response
-    ) {
-        GradeStatistics stats = new GradeStatistics();
-        stats.setMean(response.meanTotal());
-        stats.setStdDeviation(response.standardDeviationTotal());
-
-        return statisticsRepo.save(stats);
-    }
-
     private void createBoundaries(
             GradeStatistics statistics,
             Map<GradeLetter, Pair<BigDecimal, BigDecimal>> boundaries

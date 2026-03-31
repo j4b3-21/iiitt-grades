@@ -1,8 +1,10 @@
 package example.example.grading_engine.service.impl;
 
+import example.example.grading_engine.dto.GradingResult;
 import example.example.grading_engine.dto.SubjectMarks_GradingRequest;
 import example.example.grading_engine.dto.SubjectMarks_GradingResponse;
 import example.example.grading_engine.enums.marksvalidation.MarkComponentType;
+import example.example.grading_engine.model.entity.GradeSubmission;
 import example.example.grading_engine.model.entity.Mark;
 import example.example.grading_engine.policy.GradingPolicy;
 import example.example.grading_engine.policy.PolicyContext;
@@ -32,7 +34,7 @@ public class MarksService {
         this.gradingPersistenceService = gradingPersistenceService;
     }
 
-    public SubjectMarks_GradingResponse getGrading(@Valid SubjectMarks_GradingRequest request) {
+    public GradingResult getGrading(@Valid SubjectMarks_GradingRequest request) {
 
 
         List<MarkComponentType> types = request.markTypes();
@@ -104,11 +106,14 @@ public class MarksService {
         );
 
         SubjectMarks_GradingResponse response = policy.apply(context);
-        gradingPersistenceService.saveDraftGradingSnapshot(
-                response,
-                policyVersion
-        );
-        return response;
+
+        GradeSubmission submission =
+                gradingPersistenceService.saveDraftGradingSnapshot(
+                        response,
+                        policyVersion
+                );
+
+        return new GradingResult(response, submission);
 
     }
 
